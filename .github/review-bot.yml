@@ -26,3 +26,12 @@ rules:
         - ^CHANGELOG.md$
     type: fellows
     minRank: 1
+  - name: General check
+    condition:
+      include:
+        - '.*'
+    minApprovals: 2
+    type: basic
+    teams:
+      - opstooling
+
