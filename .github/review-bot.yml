@@ -26,6 +26,7 @@ rules:
         - ^CHANGELOG.md$
     type: fellows
     minRank: 1
+    minScore: 4
   - name: General check
     condition:
       include:
@@ -34,4 +35,10 @@ rules:
     type: basic
     teams:
       - opstooling
-
+scores:
+  dan1: 1
+  dan2: 2
+  dan3: 3
+  dan4: 4
+  dan5: 5
+  dan6: 6
