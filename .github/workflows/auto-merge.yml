@@ -4,6 +4,9 @@ on:
   # GitHub considers PRs as issues
   issue_comment:
     types: [created]
+  workflow_run:
+    workflows: [Auto Merge Bot]
+    types: [completed]
 
 jobs:
   set-auto-merge:
