@@ -24,6 +24,7 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
+mod impls;
 mod weights;
 pub mod xcm_config;
 
@@ -39,7 +40,9 @@ use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
-	traits::{AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, Verify},
+	traits::{
+		AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto, Verify,
+	},
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, Perbill, Permill,
 };
@@ -58,7 +61,7 @@ use frame_support::{
 	traits::{
 		fungible, fungibles, tokens::imbalance::ResolveAssetTo, AsEnsureOriginWithArg, ConstBool,
 		ConstU128, ConstU32, ConstU64, ConstU8, EitherOfDiverse, Equals, InstanceFilter,
-		TransformOrigin,
+		TransformOrigin, WithdrawReasons,
 	},
 	weights::{ConstantMultiplier, Weight},
 	BoundedVec, PalletId,
@@ -67,11 +70,10 @@ use frame_system::{
 	limits::{BlockLength, BlockWeights},
 	EnsureRoot, EnsureSigned, EnsureSignedBy,
 };
-use pallet_asset_conversion_tx_payment::AssetConversionAdapter;
 use pallet_nfts::PalletFeatures;
 use parachains_common::{
-	impls::DealWithFees, message_queue::*, AccountId, AssetIdForTrustBackedAssets, AuraId, Balance,
-	BlockNumber, Hash, Header, Nonce, Signature,
+	message_queue::*, AccountId, AssetIdForTrustBackedAssets, AuraId, Balance, BlockNumber, Hash,
+	Header, Nonce, Signature,
 };
 use sp_runtime::RuntimeDebug;
 pub use system_parachains_constants::SLOT_DURATION;
@@ -110,7 +112,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("statemine"),
 	impl_name: create_runtime_str!("statemine"),
 	authoring_version: 1,
-	spec_version: 1_002_000,
+	spec_version: 1_002_004,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 14,
@@ -126,7 +128,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("statemine"),
 	impl_name: create_runtime_str!("statemine"),
 	authoring_version: 1,
-	spec_version: 1_002_000,
+	spec_version: 1_002_004,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 14,
@@ -230,14 +232,38 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_types! {
+	pub UnvestedFundsAllowedWithdrawReasons: WithdrawReasons =
+		WithdrawReasons::except(WithdrawReasons::TRANSFER | WithdrawReasons::RESERVE);
+}
+
+impl pallet_vesting::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type BlockNumberToBalance = ConvertInto;
+	type MinVestedTransfer = ExistentialDeposit;
+	type WeightInfo = weights::pallet_vesting::WeightInfo<Runtime>;
+	type UnvestedFundsAllowedWithdrawReasons = UnvestedFundsAllowedWithdrawReasons;
+	/// Note for wallets and implementers: This means that vesting schedules are evaluated with the
+	/// block number of the Relay Chain, not the parachain. This is because with Coretime and Async
+	/// Backing, parachain block numbers may not be a good proxy for time. Vesting schedules should
+	/// be set accordingly.
+	type BlockNumberProvider = cumulus_pallet_parachain_system::RelaychainDataProvider<Runtime>;
+	const MAX_VESTING_SCHEDULES: u32 = 28;
+}
+
+parameter_types! {
 	/// Relay Chain `TransactionByteFee` / 10
 	pub const TransactionByteFee: Balance = system_parachains_constants::kusama::fee::TRANSACTION_BYTE_FEE;
+	pub StakingPot: AccountId = CollatorSelection::account_id();
 }
 
 impl pallet_transaction_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type OnChargeTransaction =
-		pallet_transaction_payment::CurrencyAdapter<Balances, DealWithFees<Runtime>>;
+	type OnChargeTransaction = impls::tx_payment::FungiblesAdapter<
+		NativeAndAssets,
+		KsmLocationV3,
+		ResolveAssetTo<StakingPot, NativeAndAssets>,
+	>;
 	type WeightToFee = WeightToFee;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 	type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
@@ -507,7 +533,10 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 					RuntimeCall::Assets { .. } |
 					RuntimeCall::NftFractionalization { .. } |
 					RuntimeCall::Nfts { .. } |
-					RuntimeCall::Uniques { .. }
+					RuntimeCall::Uniques { .. } |
+					// We allow calling `vest` and merging vesting schedules, but obviously not
+					// vested transfers.
+					RuntimeCall::Vesting(pallet_vesting::Call::vested_transfer { .. })
 			),
 			ProxyType::CancelProxy => matches!(
 				c,
@@ -722,13 +751,6 @@ impl cumulus_pallet_xcmp_queue::Config for Runtime {
 	type PriceForSiblingDelivery = PriceForSiblingParachainDelivery;
 }
 
-// TODO: remove dmp with 1.3.0 (https://github.com/polkadot-fellows/runtimes/issues/186)
-impl cumulus_pallet_dmp_queue::Config for Runtime {
-	type WeightInfo = weights::cumulus_pallet_dmp_queue::WeightInfo<Runtime>;
-	type RuntimeEvent = RuntimeEvent;
-	type DmpSink = frame_support::traits::EnqueueWithOrigin<MessageQueue, RelayOrigin>;
-}
-
 parameter_types! {
 	pub const Period: u32 = 6 * HOURS;
 	pub const Offset: u32 = 0;
@@ -789,7 +811,7 @@ impl pallet_asset_conversion_tx_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Fungibles = LocalAndForeignAssets;
 	type OnChargeAssetTransaction =
-		AssetConversionAdapter<Balances, AssetConversion, KsmLocationV3>;
+		impls::tx_payment::SwapCreditAdapter<KsmLocationV3, AssetConversion>;
 }
 
 parameter_types! {
@@ -841,7 +863,7 @@ impl pallet_nft_fractionalization::Config for Runtime {
 	type Assets = Assets;
 	type Nfts = Nfts;
 	type PalletId = NftFractionalizationPalletId;
-	type WeightInfo = pallet_nft_fractionalization::weights::SubstrateWeight<Runtime>;
+	type WeightInfo = weights::pallet_nft_fractionalization::WeightInfo<Runtime>;
 	type RuntimeHoldReason = RuntimeHoldReason;
 	#[cfg(feature = "runtime-benchmarks")]
 	type BenchmarkHelper = ();
@@ -934,6 +956,7 @@ construct_runtime!(
 		Balances: pallet_balances = 10,
 		TransactionPayment: pallet_transaction_payment = 11,
 		AssetTxPayment: pallet_asset_conversion_tx_payment = 13,
+		Vesting: pallet_vesting = 14,
 
 		// Collator support. the order of these 5 are important and shall not change.
 		Authorship: pallet_authorship = 20,
@@ -946,9 +969,7 @@ construct_runtime!(
 		XcmpQueue: cumulus_pallet_xcmp_queue = 30,
 		PolkadotXcm: pallet_xcm = 31,
 		CumulusXcm: cumulus_pallet_xcm = 32,
-		// TODO: remove dmp with 1.3.0 (https://github.com/polkadot-fellows/runtimes/issues/186)
-		// Temporary to migrate the remaining DMP messages:
-		DmpQueue: cumulus_pallet_dmp_queue = 33,
+		// DmpQueue = 33
 		ToPolkadotXcmRouter: pallet_xcm_bridge_hub_router::<Instance1> = 34,
 		MessageQueue: pallet_message_queue = 35,
 
@@ -990,14 +1011,20 @@ pub type SignedExtra = (
 	frame_system::CheckNonce<Runtime>,
 	frame_system::CheckWeight<Runtime>,
 	pallet_asset_conversion_tx_payment::ChargeAssetTxPayment<Runtime>,
+	frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
 );
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic =
 	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
+
+parameter_types! {
+	pub DmpQueueName: &'static str = "DmpQueue";
+}
+
 /// Migrations to apply on runtime upgrade.
 pub type Migrations = (
-	// unreleased
-	cumulus_pallet_xcmp_queue::migration::v4::MigrationToV4<Runtime>,
+	frame_support::migrations::RemovePallet<DmpQueueName, RocksDbWeight>,
+	pallet_collator_selection::migration::v2::MigrationToV2<Runtime>,
 	// permanent
 	pallet_xcm::migration::MigrateToLatestXcmVersion<Runtime>,
 );
@@ -1029,11 +1056,11 @@ mod benches {
 		[pallet_session, SessionBench::<Runtime>]
 		[pallet_uniques, Uniques]
 		[pallet_utility, Utility]
+		[pallet_vesting, Vesting]
 		[pallet_timestamp, Timestamp]
 		[pallet_collator_selection, CollatorSelection]
 		[cumulus_pallet_parachain_system, ParachainSystem]
 		[cumulus_pallet_xcmp_queue, XcmpQueue]
-		[cumulus_pallet_dmp_queue, DmpQueue]
 		// XCM
 		[pallet_xcm, PalletXcmExtrinsiscsBenchmark::<Runtime>]
 		// Bridges
@@ -1701,7 +1728,6 @@ fn ensure_key_ss58() {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::{CENTS, MILLICENTS};
 	use sp_runtime::traits::Zero;
 	use sp_weights::WeightToFee;
 	use system_parachains_constants::kusama::fee;
