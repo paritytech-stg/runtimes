@@ -38,3 +38,6 @@ rls*.log
 runtime/wasm/target/
 substrate.code-workspace
 target/
+# act
+.secrets
+act_*.json
