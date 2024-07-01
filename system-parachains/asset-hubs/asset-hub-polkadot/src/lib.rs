@@ -90,7 +90,7 @@ use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
 	construct_runtime,
 	dispatch::DispatchClass,
-	genesis_builder_helper::{build_config, create_default_config},
+	genesis_builder_helper::{build_state, get_preset},
 	parameter_types,
 	traits::{
 		fungible, fungibles, tokens::imbalance::ResolveAssetTo, AsEnsureOriginWithArg, ConstBool,
@@ -210,6 +210,11 @@ impl frame_system::Config for Runtime {
 	type SS58Prefix = SS58Prefix;
 	type OnSetCode = cumulus_pallet_parachain_system::ParachainSetCode<Self>;
 	type MaxConsumers = frame_support::traits::ConstU32<64>;
+	type SingleBlockMigrations = ();
+	type MultiBlockMigrator = ();
+	type PreInherents = ();
+	type PostInherents = ();
+	type PostTransactions = ();
 }
 
 impl pallet_timestamp::Config for Runtime {
@@ -655,6 +660,7 @@ impl pallet_message_queue::Config for Runtime {
 	type HeapSize = sp_core::ConstU32<{ 64 * 1024 }>;
 	type MaxStale = sp_core::ConstU32<8>;
 	type ServiceWeight = MessageQueueServiceWeight;
+	type IdleMaxServiceWeight = ();
 }
 
 impl cumulus_pallet_aura_ext::Config for Runtime {}
@@ -891,7 +897,7 @@ pub type LocalAndForeignAssets = fungibles::UnionOf<
 	Assets,
 	ForeignAssets,
 	LocalFromLeft<
-		AssetIdForTrustBackedAssetsConvert<TrustBackedAssetsPalletLocationV3>,
+		AssetIdForTrustBackedAssetsConvert<TrustBackedAssetsPalletLocationV3, xcm::v3::Location>,
 		AssetIdForTrustBackedAssets,
 		xcm::v3::Location,
 	>,
@@ -1014,7 +1020,6 @@ pub type SignedExtra = (
 	frame_system::CheckNonce<Runtime>,
 	frame_system::CheckWeight<Runtime>,
 	pallet_asset_conversion_tx_payment::ChargeAssetTxPayment<Runtime>,
-	frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
 );
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic =
@@ -1082,7 +1087,7 @@ impl_runtime_apis! {
 		}
 
 		fn authorities() -> Vec<AuraId> {
-			Aura::authorities().into_inner()
+			pallet_aura::Authorities::<Runtime>::get().into_inner()
 		}
 	}
 
@@ -1104,7 +1109,7 @@ impl_runtime_apis! {
 			Executive::execute_block(block)
 		}
 
-		fn initialize_block(header: &<Block as BlockT>::Header) {
+		fn initialize_block(header: &<Block as BlockT>::Header) -> sp_runtime::ExtrinsicInclusionMode {
 			Executive::initialize_block(header)
 		}
 	}
@@ -1269,12 +1274,16 @@ impl_runtime_apis! {
 	}
 
 	impl sp_genesis_builder::GenesisBuilder<Block> for Runtime {
-		fn create_default_config() -> Vec<u8> {
-			create_default_config::<RuntimeGenesisConfig>()
+		fn build_state(config: Vec<u8>) -> sp_genesis_builder::Result {
+			build_state::<RuntimeGenesisConfig>(config)
 		}
 
-		fn build_config(config: Vec<u8>) -> sp_genesis_builder::Result {
-			build_config::<RuntimeGenesisConfig>(config)
+		fn get_preset(id: &Option<sp_genesis_builder::PresetId>) -> Option<Vec<u8>> {
+			get_preset::<RuntimeGenesisConfig>(id, |_| None)
+		}
+
+		fn preset_names() -> Vec<sp_genesis_builder::PresetId> {
+			vec![]
 		}
 	}
 
@@ -1377,7 +1386,7 @@ impl_runtime_apis! {
 			use sp_storage::TrackedStorageKey;
 			use xcm::latest::prelude::{
 				Asset, Fungible, Here, InteriorLocation, Junction, Junction::*, Location, NetworkId,
-				NonFungible, Parent, ParentThen, Response, XCM_VERSION,
+				NonFungible, Parent, ParentThen, Response, XCM_VERSION, Assets as XcmAssets,
 			};
 
 			use frame_system_benchmarking::Pallet as SystemBench;
@@ -1450,7 +1459,7 @@ impl_runtime_apis! {
 				}
 
 				fn set_up_complex_asset_transfer(
-				) -> Option<(xcm::v4::Assets, u32, Location, Box<dyn FnOnce()>)> {
+				) -> Option<(XcmAssets, u32, Location, Box<dyn FnOnce()>)> {
 					// Transfer to Relay some local AH asset (local-reserve-transfer) while paying
 					// fees using teleported native token.
 					// (We don't care that Relay doesn't accept incoming unknown AH local asset)
@@ -1481,7 +1490,7 @@ impl_runtime_apis! {
 					);
 					let transfer_asset: Asset = (asset_location, asset_amount).into();
 
-					let assets: xcm::v4::Assets = vec![fee_asset.clone(), transfer_asset].into();
+					let assets: XcmAssets = vec![fee_asset.clone(), transfer_asset].into();
 					let fee_index = if assets.get(0).unwrap().eq(&fee_asset) { 0 } else { 1 };
 
 					// verify transferred successfully
@@ -1517,30 +1526,26 @@ impl_runtime_apis! {
 				fn valid_destination() -> Result<Location, BenchmarkError> {
 					Ok(DotLocation::get())
 				}
-				fn worst_case_holding(depositable_count: u32) -> xcm::v4::Assets {
+				fn worst_case_holding(depositable_count: u32) -> XcmAssets {
 					// A mix of fungible, non-fungible, and concrete assets.
 					let holding_non_fungibles = MaxAssetsIntoHolding::get() / 2 - depositable_count;
-					let holding_fungibles = holding_non_fungibles - 1;
+					let holding_fungibles = holding_non_fungibles.saturating_sub(2); // -2 for two `iter::once` bellow
 					let fungibles_amount: u128 = 100;
-					let mut assets = (0..holding_fungibles)
+					(0..holding_fungibles)
 						.map(|i| {
 							Asset {
 								id: AssetId(GeneralIndex(i as u128).into()),
-								fun: Fungible(fungibles_amount * i as u128),
+								fun: Fungible(fungibles_amount * (i + 1) as u128), // non-zero amount
 							}
 						})
 						.chain(core::iter::once(Asset { id: AssetId(Here.into()), fun: Fungible(u128::MAX) }))
+						.chain(core::iter::once(Asset { id: AssetId(DotLocation::get()), fun: Fungible(1_000_000 * UNITS) }))
 						.chain((0..holding_non_fungibles).map(|i| Asset {
 							id: AssetId(GeneralIndex(i as u128).into()),
 							fun: NonFungible(asset_instance_from(i)),
 						}))
-						.collect::<Vec<_>>();
-
-					assets.push(Asset {
-						id: AssetId(DotLocation::get()),
-						fun: Fungible(1_000_000 * UNITS),
-					});
-					assets.into()
+						.collect::<Vec<_>>()
+						.into()
 				}
 			}
 
@@ -1582,7 +1587,7 @@ impl_runtime_apis! {
 					(0u64, Response::Version(Default::default()))
 				}
 
-				fn worst_case_asset_exchange() -> Result<(xcm::v4::Assets, xcm::v4::Assets), BenchmarkError> {
+				fn worst_case_asset_exchange() -> Result<(XcmAssets, XcmAssets), BenchmarkError> {
 					Err(BenchmarkError::Skip)
 				}
 
@@ -1599,9 +1604,9 @@ impl_runtime_apis! {
 					Ok(DotLocation::get())
 				}
 
-				fn claimable_asset() -> Result<(Location, Location, xcm::v4::Assets), BenchmarkError> {
+				fn claimable_asset() -> Result<(Location, Location, XcmAssets), BenchmarkError> {
 					let origin = DotLocation::get();
-					let assets: xcm::v4::Assets = (AssetId(DotLocation::get()), 1_000 * UNITS).into();
+					let assets: XcmAssets = (AssetId(DotLocation::get()), 1_000 * UNITS).into();
 					let ticket = Location { parents: 0, interior: Here };
 					Ok((origin, ticket, assets))
 				}
