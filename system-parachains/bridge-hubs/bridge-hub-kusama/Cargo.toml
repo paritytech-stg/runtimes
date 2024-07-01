@@ -17,6 +17,7 @@ hex-literal = { workspace = true }
 log = { workspace = true }
 scale-info = { features = ["derive"], workspace = true }
 serde = { optional = true, features = ["derive"], workspace = true }
+tuplex = { workspace = true }
 
 # Local
 bp-asset-hub-kusama = { workspace = true }
@@ -29,13 +30,12 @@ polkadot-runtime-constants = { workspace = true }
 # Substrate
 frame-benchmarking = { optional = true, workspace = true }
 frame-executive = { workspace = true }
-frame-metadata-hash-extension = { workspace = true }
 frame-support = { workspace = true }
 frame-system = { workspace = true }
 frame-system-benchmarking = { optional = true, workspace = true }
 frame-system-rpc-runtime-api = { workspace = true }
 frame-try-runtime = { optional = true, workspace = true }
-pallet-aura = { features = ["experimental"], workspace = true }
+pallet-aura = { workspace = true }
 pallet-authorship = { workspace = true }
 pallet-balances = { workspace = true }
 pallet-message-queue = { workspace = true }
@@ -96,6 +96,7 @@ bp-relayers = { workspace = true }
 bp-runtime = { workspace = true }
 bp-kusama = { workspace = true }
 bp-polkadot = { workspace = true }
+bp-polkadot-bulletin = { workspace = true }
 bridge-hub-common = { workspace = true }
 bridge-runtime-common = { workspace = true }
 pallet-bridge-grandpa = { workspace = true }
@@ -155,7 +156,6 @@ std = [
 	"cumulus-primitives-utility/std",
 	"frame-benchmarking?/std",
 	"frame-executive/std",
-	"frame-metadata-hash-extension/std",
 	"frame-support/std",
 	"frame-system-benchmarking?/std",
 	"frame-system-rpc-runtime-api/std",
@@ -218,6 +218,7 @@ std = [
 	"xcm-builder/std",
 	"xcm-executor/std",
 	"xcm/std",
+	"bp-polkadot-bulletin/std"
 ]
 
 runtime-benchmarks = [
@@ -297,10 +298,7 @@ try-runtime = [
 	"sp-runtime/try-runtime",
 ]
 
-# Enable metadata hash generation at compile time for the `CheckMetadataHash` extension.
-metadata-hash = ["substrate-wasm-builder?/metadata-hash"]
-
 # A feature that should be enabled when the runtime should be built for on-chain
 # deployment. This will disable stuff that shouldn't be part of the on-chain wasm
 # to make it smaller, like logging for example.
-on-chain-release-build = ["sp-api/disable-logging", "metadata-hash"]
+on-chain-release-build = ["sp-api/disable-logging"]

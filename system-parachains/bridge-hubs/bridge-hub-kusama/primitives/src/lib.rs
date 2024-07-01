@@ -61,6 +61,7 @@ impl Chain for BridgeHubKusama {
 
 impl Parachain for BridgeHubKusama {
 	const PARACHAIN_ID: u32 = BRIDGE_HUB_KUSAMA_PARACHAIN_ID;
+	const MAX_HEADER_SIZE: u32 = MAX_BRIDGE_HUB_HEADER_SIZE; // FAIL-CI @svyatonik please check
 }
 
 impl ChainWithMessages for BridgeHubKusama {
@@ -101,12 +102,12 @@ frame_support::parameter_types! {
 	pub const BridgeHubKusamaBaseXcmFeeInKsms: u128 = 590_387_000;
 
 	/// Transaction fee that is paid at the Kusama BridgeHub for delivering single inbound message.
-	/// (initially was calculated by test `BridgeHubKusama::can_calculate_fee_for_complex_message_delivery_transaction` + `33%`)
-	pub const BridgeHubKusamaBaseDeliveryFeeInKsms: u128 = 56_375_433_121;
+	/// (initially was calculated by test `BridgeHubKusama::can_calculate_fee_for_standalone_message_delivery_transaction` + `33%`)
+	pub const BridgeHubKusamaBaseDeliveryFeeInKsms: u128 = 3_140_383_954;
 
 	/// Transaction fee that is paid at the Kusama BridgeHub for delivering single outbound message confirmation.
-	/// (initially was calculated by test `BridgeHubKusama::can_calculate_fee_for_complex_message_confirmation_transaction` + `33%`)
-	pub const BridgeHubKusamaBaseConfirmationFeeInKsms: u128 = 53_809_198_573;
+	/// (initially was calculated by test `BridgeHubKusama::can_calculate_fee_for_standalone_message_confirmation_transaction` + `33%`)
+	pub const BridgeHubKusamaBaseConfirmationFeeInKsms: u128 = 574_149_406;
 }
 
 /// Compute the total estimated fee that needs to be paid in KSMs by the sender when sending
