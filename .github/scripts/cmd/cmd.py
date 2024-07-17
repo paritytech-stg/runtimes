@@ -23,34 +23,82 @@ args = parser.parse_args()
 if args.command == 'bench':
     tempdir = tempfile.TemporaryDirectory()
     print(f'Created temp dir: {tempdir.name}')
+    runtime_pallets_map = {}
+
+    profile = "release"
 
     # TODO: uncomment
-    os.system('cargo build -p chain-spec-generator --profile release --features runtime-benchmarks')
+    os.system(f"cargo build -p chain-spec-generator --profile {profile} --features runtime-benchmarks")
 
+    # filter out only the specified runtime from runtimes
     if args.runtime:
-        # filter out only the specified runtime from runtimes
         print(f'Provided runtimes: {args.runtime}')
         runtimesMatrix = list(filter(lambda x: x['name'] in args.runtime, runtimesMatrix))
+        # convert to mapped dict
+        runtimesMatrix = {x['name']: x for x in runtimesMatrix}
+
         print(f'Filtered out runtimes: {runtimesMatrix}')
 
-    # loop over left runtimes and print names
-    for runtime in runtimesMatrix:
-        print(f'-- building chain specs for {runtime["name"]}')
+    # loop over remaining runtimes to collect available pallets
+    for runtime in runtimesMatrix.values():
         print(f'-- listing pallets for benchmark for {runtime["name"]}')
-        wasm_file = f"target/production/wbuild/{runtime['package']}/{runtime['package'].replace('-', '_')}.wasm"
+        wasm_file = f"target/{profile}/wbuild/{runtime['package']}/{runtime['package'].replace('-', '_')}.wasm"
         output = os.popen(f"frame-omni-bencher v1 benchmark pallet --all --list --runtime={wasm_file}").read()
-        print(f"Output of list: {output}")
-        raw_pallets = output.split('\n')
+        raw_pallets = output.split('\n')[1:]  # skip the first line with header
 
-        pallets = []
+        all_pallets = set()
         for pallet in raw_pallets:
             if pallet:
-                pallets.append(pallet.split(',')[0])
+                all_pallets.add(pallet.split(',')[0])
 
-        print(f'Pallets: {pallets}')
+        pallets = list(all_pallets)
+        print(f'Pallets in {runtime}: {pallets}')
+        runtime_pallets_map[runtime['name']] = pallets
 
-    # if args.pallet:
-    #     print(f'Pallets: {args.pallet}')
+    # filter out only the specified pallets from collected runtimes/pallets
+    if args.pallet:
+        print(f'Pallet: {args.pallet}')
+        new_pallets_map = {}
+        # keep only specified pallets if they exist in the runtime
+        for runtime in runtime_pallets_map:
+            if set(args.pallet).issubset(set(runtime_pallets_map[runtime])):
+                new_pallets_map[runtime] = args.pallet
+
+        runtime_pallets_map = new_pallets_map
+
+    print(f'Filtered out runtimes & pallets: {runtime_pallets_map}')
+
+    if not runtime_pallets_map:
+        if args.pallet and not args.runtime:
+            print(f"No pallets [{args.pallet}] found in any runtime")
+        elif args.runtime and not args.pallet:
+            print(f"{args.runtime} runtime does not have any pallets")
+        elif args.runtime and args.pallet:
+            print(f"No pallets [{args.pallet}] found in {args.runtime}")
+        else:
+            print('No runtimes found')
+        sys.exit(0)
+
+    header_path = os.path.abspath('./.github/scripts/cmd/file_header.txt')
+
+    for runtime in runtime_pallets_map:
+        for pallet in runtime_pallets_map[runtime]:
+            config = runtimesMatrix[runtime]
+            print(f'-- config: {config}')
+            output_path = f"./{config['path']}/src/weights/{pallet.replace('::', '_')}.rs";
+            print(f'-- benchmarking {pallet} in {runtime} into {output_path}')
+
+            os.system(f"frame-omni-bencher v1 benchmark pallet "
+                      f"--extrinsic=* "
+                      f"--runtime=target/{profile}/wbuild/{config['package']}/{config['package'].replace('-', '_')}.wasm "
+                      f"--pallet={pallet} "
+                      f"--header={header_path} "
+                      f"--output={output_path} "
+                      f"--wasm-execution=compiled  "
+                      f"--steps=50 "
+                      f"--repeat=20 "
+                      f"--heap-pages=4096 "
+                      )
 
     tempdir.cleanup()
 
