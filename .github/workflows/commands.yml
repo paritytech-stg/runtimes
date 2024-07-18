@@ -52,20 +52,21 @@ jobs:
         with:
           github-token: ${{ steps.commands_token.outputs.token }}
           script: |
-            const commentBody = '/cmd bench --runtime kusama --pallet pallet_indices' //context.payload.comment.body;
-            // extract with regex the command
-            const readArgs = commentBody.match(/^\/cmd ([\w-]+)(.*)$/);
-            const command = readArgs[1].trim();
-            const args = readArgs[2].trim();
-  
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `Command started! [Link to pipeline](${context.runId})`
-            })
-            
-            return `${command} ${args}`.trim();
+#            const commentBody = '/cmd bench --runtime kusama --pallet pallet_indices' //context.payload.comment.body;
+#            // extract with regex the command
+#            const readArgs = commentBody.match(/^\/cmd ([\w-]+)(.*)$/);
+#            const command = readArgs[1].trim();
+#            const args = readArgs[2].trim();
+#
+#            github.rest.issues.createComment({
+#              issue_number: context.issue.number,
+#              owner: context.repo.owner,
+#              repo: context.repo.repo,
+#              body: `Command started! [Link to pipeline](${context.runId})`
+#            })
+
+#            return `${command} ${args}`.trim();
+            return `bench --runtime kusama --pallet pallet_indices`;
 
       - name: Run cmd.sh
         id: bench
