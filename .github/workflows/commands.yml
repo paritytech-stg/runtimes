@@ -6,82 +6,95 @@ on:
   workflow_dispatch:
   pull_request:
 
+permissions: # allow the action to comment on the PR
+  contents: write
+  issues: write
+  pull-requests: write
+
 jobs:
   bench:
     if: github.event.issue.pull_request && startsWith(github.event.comment.body, '/cmd')
     runs-on: arc-runners-beefy-stg
-#    runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Install updates and protobuf-compiler
+        run: sudo apt update && sudo apt install --assume-yes cmake protobuf-compiler
 
-    - name: Install stable toolchain
-      run: |
-        # TODO: install taplo
-        rustup install $RUST_STABLE_VERSION
-        rustup default $RUST_STABLE_VERSION
-        rustup target add wasm32-unknown-unknown
-        rustup component add rust-src
-        cargo install subweight
-        cargo install frame-omni-bencher
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Generate a token
-      id: commands_token
-      uses: actions/create-github-app-token@v1.8.1
-      with:
-        app-id: ${{ secrets.COMMAND_APP_ID }}
-        private-key: ${{ secrets.COMMAND_APP_SECRET }}
+      - name: Set rust version via common env file
+        run: cat .github/env >> $GITHUB_ENV
 
-    - name: Comment PR (Start)
-      id: parse-args
-      uses: actions/github-script@v7
-      with:
-        github-token: ${{ steps.commands_token.outputs.token }}
-        script: |
-          const commentBody = context.payload.comment.body;
-          // extract with regex the command
-          const readArgs = commentBody.match(/^\/cmd ([\w-]+)(.*)$/);
-          const command = readArgs[1].trim();
-          const args = readArgs[2].trim();
+      - name: Install stable toolchain
+        run: |
+          rustup install $RUST_STABLE_VERSION
+          rustup default $RUST_STABLE_VERSION
+          rustup target add wasm32-unknown-unknown
+          rustup component add rust-src
+          cargo install subweight
+          cargo install frame-omni-bencher
 
-          github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: `Command started! [Link to pipeline](${context.runId})`
-          })
-          
-          return `${command} ${args}`.trim();
+      - name: Fetch cache
+        uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
+        with:
+          shared-key: "fellowship-cmd"
 
-    - name: Run cmd.sh
-      id: bench
-      run: |
-        chmod +x .github/scripts/cmd/cmd.py
-        OUTPUT=$(python3 .github/scripts/cmd/cmd.py ${{ steps.parse-args.outputs.result }})
-        echo "$OUTPUT" >> $GITHUB_OUTPUT
+      - name: Generate a token
+        id: commands_token
+        uses: actions/create-github-app-token@v1.8.1
+        with:
+          app-id: ${{ secrets.COMMAND_APP_ID }}
+          private-key: ${{ secrets.COMMAND_APP_SECRET }}
 
-    - name: Comment PR (End)
-      uses: actions/github-script@v7
-      with:
-        github-token: ${{ steps.commands_token.outputs.token }}
-#        github-token: ${{ secrets.GITHUB_TOKEN }}
-        script: |
-          const output = `${{ steps.bench.outputs.result }}`
-          console.log(output)
-          github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: `Benchmark finished! Output: ${output} [Link to pipeline](${context.runId})`
-          })
+      - name: Comment PR (Start)
+        id: parse-args
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ steps.commands_token.outputs.token }}
+          script: |
+            const commentBody = context.payload.comment.body;
+            // extract with regex the command
+            const readArgs = commentBody.match(/^\/cmd ([\w-]+)(.*)$/);
+            const command = readArgs[1].trim();
+            const args = readArgs[2].trim();
+  
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `Command started! [Link to pipeline](${context.runId})`
+            })
+            
+            return `${command} ${args}`.trim();
 
-    - name: Commit changes
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git commit -m "Update from benchmark" -a
-        git remote add fork https://github.com/${{ github.actor }}/${{ github.repository }}
-        git fetch fork
-        git checkout -b ${{ github.head_ref }} --track fork/${{ github.head_ref }}
-        git push fork ${{ github.head_ref }}
+      - name: Run cmd.sh
+        id: bench
+        run: |
+          chmod +x .github/scripts/cmd/cmd.py
+          OUTPUT=$(python3 .github/scripts/cmd/cmd.py ${{ steps.parse-args.outputs.result }})
+          echo "$OUTPUT" >> $GITHUB_OUTPUT
+
+      - name: Comment PR (End)
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ steps.commands_token.outputs.token }}
+  #        github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `${{ steps.bench.outputs.result }}`
+            console.log(output)
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `Benchmark finished! Output: ${output} [Link to pipeline](${context.runId})`
+            })
+
+      - name: Commit changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git commit -m "Update from benchmark" -a
+          git remote add fork https://github.com/${{ github.actor }}/${{ github.repository }}
+          git fetch fork
+          git checkout -b ${{ github.head_ref }} --track fork/${{ github.head_ref }}
+          git push fork ${{ github.head_ref }}
