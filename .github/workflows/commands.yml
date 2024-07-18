@@ -14,7 +14,7 @@ permissions: # allow the action to comment on the PR
 jobs:
   bench:
     if: github.event.issue.pull_request && startsWith(github.event.comment.body, '/cmd')
-    runs-on: arc-runners-beefy-stg
+    runs-on: ubuntu-22.04
     steps:
       - name: Install updates and protobuf-compiler
         run: sudo apt update && sudo apt install --assume-yes cmake protobuf-compiler
