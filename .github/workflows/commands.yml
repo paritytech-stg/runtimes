@@ -32,15 +32,6 @@ jobs:
           app-id: ${{ secrets.COMMAND_APP_ID }}
           private-key: ${{ secrets.COMMAND_APP_KEY }}
 
-#      - name: Install stable toolchain
-#        run: |
-#          rustup install $RUST_STABLE_VERSION
-#          rustup default $RUST_STABLE_VERSION
-#          # rustup target add wasm32-unknown-unknown
-#          # rustup component add rust-src
-#          cargo install subweight frame-omni-bencher
-
-
       - name: Fetch cache
         uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
         with:
@@ -68,7 +59,7 @@ jobs:
               body: `Command started! [Link to pipeline](${context.runId})`
             })
 
-#            return `${command} ${args}`.trim();
+            // return `${command} ${args}`.trim();
             return `bench --runtime kusama --pallet pallet_indices`;
 
       - name: Run cmd.sh
