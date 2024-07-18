@@ -64,9 +64,11 @@ jobs:
 
       - name: Run cmd.sh
         id: bench
+        env:
+          $CMD: ${{ steps.parse-args.outputs.result }} # to avoid "" around the command
         run: |
           chmod +x .github/scripts/cmd/cmd.py
-          OUTPUT=$(python3 .github/scripts/cmd/cmd.py ${{ steps.parse-args.outputs.result }})
+          OUTPUT=$(python3 .github/scripts/cmd/cmd.py $CMD)
           echo "$OUTPUT" >> $GITHUB_OUTPUT
 
       - name: Comment PR (End)
