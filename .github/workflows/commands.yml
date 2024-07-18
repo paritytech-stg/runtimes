@@ -13,7 +13,7 @@ permissions: # allow the action to comment on the PR
 
 jobs:
   bench:
-    #if: github.event.issue.pull_request #&& startsWith(github.event.comment.body, '/cmd')
+    if: github.event.issue.pull_request || startsWith(github.event.comment.body, '/cmd')
     runs-on: ubuntu-22.04
     steps:
       - name: Install updates and protobuf-compiler
