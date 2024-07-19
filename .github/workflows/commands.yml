@@ -11,7 +11,7 @@ permissions: # allow the action to comment on the PR
 
 jobs:
   bench:
-    runs-on: arc-runners-beefy-stg
+    runs-on: arc-runners-default-stg
     steps:
       - name: Install updates and protobuf-compiler
         run: sudo apt update && sudo apt install --assume-yes cmake protobuf-compiler
