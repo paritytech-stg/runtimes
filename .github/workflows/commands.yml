@@ -1,4 +1,4 @@
-name: Bench
+name: Command
 
 on:
   issue_comment: # listen for comments on issues
@@ -10,7 +10,7 @@ permissions: # allow the action to comment on the PR
   pull-requests: write
 
 jobs:
-  bench:
+  cmd:
     if: startsWith(github.event.comment.body, '/cmd')
     runs-on: arc-runners-beefy-stg
     steps:
@@ -34,8 +34,15 @@ jobs:
           components: "rust-src rustfmt clippy"
           toolchain: "nightly-${{env.RUST_NIGHTLY_VERSION}}"
 
+      - name: Get command
+        uses: actions-ecosystem/action-regex-match@v2
+        id: get-pr-comment
+        with:
+          text: ${{ github.event.comment.body }}
+          regex: '^(\/cmd )(.*)$'
 
-      - name: Install dependencies
+      - name: Install dependencies for bench
+        if: startsWith(steps.get-pr-comment.outputs.group2, 'bench')
         run: cargo install subweight frame-omni-bencher
 
       - name: Setup Cache
@@ -50,15 +57,8 @@ jobs:
           app-id: ${{ secrets.COMMAND_APP_ID }}
           private-key: ${{ secrets.COMMAND_APP_KEY }}
 
-      - name: Get PR comment
-        uses: actions-ecosystem/action-regex-match@v2
-        id: get-pr-comment
-        with:
-          text: ${{ github.event.comment.body }}
-          regex: '^(\/cmd )(.*)$'
-
       - name: Run cmd
-        id: bench
+        id: cmd
         env:
           CMD: ${{ steps.get-pr-comment.outputs.group2 }} # to avoid "" around the command
         run: |
@@ -78,16 +78,21 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `Benchmark finished! Output: [Link to pipeline](${context.runId})`
+              body: `/cmd ${{ steps.get-pr-comment.outputs.group2 }} finished! Output: [Link to pipeline](${{ steps.cmd.outputs.url }})`
             })
 
       - name: Commit changes
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
+          if [ -n "$(git status --porcelain)" ]; then
+            git config --local user.email "action@github.com"
+            git config --local user.name "GitHub Action"
+            
+            git pull origin ${{ github.head_ref }}
+            git add .
+            git commit -m "Update from command '${{ steps.get-pr-comment.outputs.group2 }}'"
+            git push origin ${{ github.head_ref }}
+          else
+            echo "Nothing to commit";
+          fi
           
-          git pull origin ${{ github.head_ref }}
-          git add .
-          git commit -m "Update from benchmark"
-          git push origin ${{ github.head_ref }}
           
