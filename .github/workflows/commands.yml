@@ -26,6 +26,7 @@ jobs:
           export PATH="$HOME/.cargo/bin:$PATH"
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
           source $HOME/.bashrc
+          ls -la $HOME/.cargo/
 
       - name: Generate a token
         id: commands_token
