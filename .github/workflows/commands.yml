@@ -1,7 +1,9 @@
 name: Bench
 
 on:
-  workflow_dispatch:
+  issue_comment: # listen for comments on issues
+    types: [created]
+    if: startsWith(github.event.comment.body, '/cmd')
   pull_request:
 
 permissions: # allow the action to comment on the PR
@@ -20,6 +22,8 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
 
       - name: Set rust version via common env file
         run: cat .github/env >> $GITHUB_ENV
@@ -46,12 +50,21 @@ jobs:
           app-id: ${{ secrets.COMMAND_APP_ID }}
           private-key: ${{ secrets.COMMAND_APP_KEY }}
 
+      - name: Get PR comment
+        uses: actions-ecosystem/action-regex-match@v2
+        id: get-pr-comment
+        with:
+          text: ${{ github.event.comment.body }}
+          regex: '^(\/cmd )(.*)$'
+
       - name: Run cmd
         id: bench
         env:
-          CMD: ${{ steps.parse-args.outputs.result }} # to avoid "" around the command
+          CMD: ${{ steps.get-pr-comment.outputs.group2 }} # to avoid "" around the command
         run: |
-          python3 .github/scripts/cmd/cmd.py bench --runtime kusama --pallet pallet_indices
+          echo "Running command: $CMD"
+          git remove -v
+          python3 .github/scripts/cmd/cmd.py $CMD
           git status
           git diff
 
@@ -72,6 +85,8 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
+          
+          git pull origin ${{ github.head_ref }}
           git add .
           git commit -m "Update from benchmark"
           git push origin HEAD:refs/heads/${{ github.head_ref }}
