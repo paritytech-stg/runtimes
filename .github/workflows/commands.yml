@@ -16,7 +16,7 @@ jobs:
       - name: Install updates and protobuf-compiler
         run: | 
           sudo apt update && sudo apt install --assume-yes \
-            pkg-config c++ make cmake protobuf-compiler curl libssl-dev libclang-dev libudev-dev
+            pkg-config g++ make cmake protobuf-compiler curl libssl-dev libclang-dev libudev-dev
 
       - name: Checkout
         uses: actions/checkout@v4
