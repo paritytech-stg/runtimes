@@ -4,7 +4,6 @@ on:
   issue_comment: # listen for comments on issues
     types: [created]
     if: startsWith(github.event.comment.body, '/cmd')
-  pull_request:
 
 permissions: # allow the action to comment on the PR
   contents: write
@@ -35,13 +34,14 @@ jobs:
           components: "rust-src rustfmt clippy"
           toolchain: "nightly-${{env.RUST_NIGHTLY_VERSION}}"
 
+
+      - name: Install dependencies
+        run: cargo install subweight frame-omni-bencher
+
       - name: Setup Cache
         uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
         with:
           shared-key: "fellowship-cmd"
-
-      - name: Install dependencies
-        run: cargo install subweight frame-omni-bencher
 
       - name: Generate a token
         id: commands_token
@@ -63,7 +63,7 @@ jobs:
           CMD: ${{ steps.get-pr-comment.outputs.group2 }} # to avoid "" around the command
         run: |
           echo "Running command: $CMD"
-          git remove -v
+          git remote -v
           python3 .github/scripts/cmd/cmd.py $CMD
           git status
           git diff
