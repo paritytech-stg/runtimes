@@ -23,7 +23,6 @@ jobs:
         run: | 
           cat .github/env >> $GITHUB_ENV
           ls -ld /home/runner
-          ls -ld /home/runner/.cargo
           ls -l /usr/bin/curl
           ps aux | grep actions
           echo $PATH
