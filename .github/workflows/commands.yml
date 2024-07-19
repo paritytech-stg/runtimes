@@ -16,16 +16,26 @@ jobs:
       - name: Install updates and protobuf-compiler
         run: sudo apt update && sudo apt install --assume-yes cmake protobuf-compiler
 
+      - name: Set rust version via common env file
+        run: cat .github/env >> $GITHUB_ENV
+
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set rust version via common env file
-        run: | 
-          cat .github/env >> $GITHUB_ENV
-          ls -ld /home/runner
-          ls -l /usr/bin
-          ps aux | grep actions
-          echo $PATH
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: "wasm32-unknown-unknown"
+          components: "rust-src"
+          toolchain: "nightly-${{env.RUST_NIGHTLY_VERSION}}"
+
+      - name: Setup Cache
+        uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
+        with:
+          shared-key: "fellowship-cmd"
+
+      - name: Install dependencies
+        run: cargo install subweight frame-omni-bencher
 
       - name: Generate a token
         id: commands_token
@@ -33,20 +43,6 @@ jobs:
         with:
           app-id: ${{ secrets.COMMAND_APP_ID }}
           private-key: ${{ secrets.COMMAND_APP_KEY }}
-
-      - name: Install stable toolchain
-        run: |
-          source $HOME/.cargo/env
-          rustup install $RUST_STABLE_VERSION
-          rustup default $RUST_STABLE_VERSION
-          rustup target add wasm32-unknown-unknown
-          rustup component add rust-src
-          cargo install subweight frame-omni-bencher
-
-      - name: Fetch cache
-        uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
-        with:
-          shared-key: "fellowship-cmd"
 
       - name: Run cmd.sh
         id: bench
