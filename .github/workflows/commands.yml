@@ -3,7 +3,6 @@ name: Bench
 on:
   issue_comment: # listen for comments on issues
     types: [created]
-    if: startsWith(github.event.comment.body, '/cmd')
 
 permissions: # allow the action to comment on the PR
   contents: write
@@ -12,6 +11,7 @@ permissions: # allow the action to comment on the PR
 
 jobs:
   bench:
+    if: startsWith(github.event.comment.body, '/cmd')
     runs-on: arc-runners-beefy-stg
     steps:
       - name: Install updates and protobuf-compiler
