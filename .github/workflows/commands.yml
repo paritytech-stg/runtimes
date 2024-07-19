@@ -22,11 +22,11 @@ jobs:
       - name: Set rust version via common env file
         run: | 
           cat .github/env >> $GITHUB_ENV
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-          export PATH="$HOME/.cargo/bin:$PATH"
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-          source $HOME/.bashrc
-          ls -la $HOME/.cargo/
+          ls -ld /home/runner
+          ls -ld /home/runner/.cargo
+          ls -l /usr/bin/curl
+          ps aux | grep actions
+          echo $PATH
 
       - name: Generate a token
         id: commands_token
