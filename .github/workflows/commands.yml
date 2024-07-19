@@ -11,7 +11,7 @@ permissions: # allow the action to comment on the PR
 
 jobs:
   bench:
-    runs-on: ubuntu-22.04
+    runs-on: arc-runners-beefy-stg
     steps:
       - name: Install updates and protobuf-compiler
         run: sudo apt update && sudo apt install --assume-yes cmake protobuf-compiler
@@ -70,7 +70,5 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git commit -m "Update from benchmark" -a
-          git remote add fork https://github.com/${{ github.actor }}/${{ github.repository }}
-          git fetch fork
-          git checkout -b ${{ github.head_ref }} --track fork/${{ github.head_ref }}
-          git push fork ${{ github.head_ref }}
+          git push origin HEAD:refs/heads/${{ github.head_ref }}
+          
