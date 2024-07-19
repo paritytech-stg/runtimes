@@ -22,7 +22,7 @@ jobs:
       - name: Set rust version via common env file
         run: | 
           cat .github/env >> $GITHUB_ENV
-          export PATH="$HOME/.cargo/bin:$PATH"
+          export PATH="$HOME/.cargo/bin:/usr/local/cargo/bin:$PATH"
 
       - name: Generate a token
         id: commands_token
