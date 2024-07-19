@@ -14,7 +14,9 @@ jobs:
     runs-on: arc-runners-beefy-stg
     steps:
       - name: Install updates and protobuf-compiler
-        run: sudo apt update && sudo apt install --assume-yes pkg-config make cmake protobuf-compiler curl libssl-dev libclang-dev
+        run: | 
+          sudo apt update && sudo apt install --assume-yes \
+            pkg-config make cmake protobuf-compiler curl libssl-dev libclang-dev libudev-dev
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,7 +28,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: "wasm32-unknown-unknown"
-          components: "rust-src"
+          components: "rust-src rustfmt clippy"
           toolchain: "nightly-${{env.RUST_NIGHTLY_VERSION}}"
 
       - name: Setup Cache
