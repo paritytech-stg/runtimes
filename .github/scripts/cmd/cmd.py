@@ -11,12 +11,16 @@ runtimesMatrix = json.load(f)
 
 runtimeNames = list(map(lambda x: x['name'], runtimesMatrix))
 
-print(f"Available runtimes: {runtimeNames}")
-
 parser = argparse.ArgumentParser(description='A command runner for polkadot runtimes repo')
-parser.add_argument('command', help='Command to run', choices=['bench', 'fmt'])
-parser.add_argument('--runtime', help='Runtime(s) space separated', choices=runtimeNames, nargs='*')
-parser.add_argument('--pallet', help='Pallet(s) space separated', nargs='*')
+parser.add_argument('--quiet', help="")
+parser.add_argument('--clean', help="")
+subparsers = parser.add_subparsers(help='a command to run', dest='command')
+
+parser_bench = subparsers.add_parser('bench', help='Runs benchmarks')
+parser_bench.add_argument('--runtime', help='Runtime(s) space separated', choices=runtimeNames, nargs='*')
+parser_bench.add_argument('--pallet', help='Pallet(s) space separated', nargs='*')
+
+parser_fmt = subparsers.add_parser('fmt', help='Formats code')
 
 args = parser.parse_args()
 
@@ -27,7 +31,6 @@ if args.command == 'bench':
 
     profile = "release"
 
-    # TODO: uncomment
     os.system(f"cargo build -p chain-spec-generator --quiet --profile {profile} --features runtime-benchmarks")
 
     # filter out only the specified runtime from runtimes
