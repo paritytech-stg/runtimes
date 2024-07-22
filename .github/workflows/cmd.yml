@@ -155,7 +155,7 @@ jobs:
             ${{ github.head_ref }} >> $GITHUB_STEP_SUMMARY
 
       - name: Comment PR (End)
-        if: ${{ !contains(github.event.comment.body, '--quiet') }}
+        if: ${{ !failure() && !contains(github.event.comment.body, '--quiet') }}
         uses: actions/github-script@v7
         with:
           github-token: ${{ steps.commands_token.outputs.token }}
@@ -168,4 +168,19 @@ jobs:
               repo: context.repo.repo,
               body: `Command "${{ steps.get-pr-comment.outputs.group2 }}" has finished! Output: [Link to pipeline](${workflowLink})`
             })
-          
+
+      - name: Comment PR (Failure)
+        if: ${{ failure() && !contains(github.event.comment.body, '--quiet') }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ steps.commands_token.outputs.token }}
+          script: |
+            let workflowLink = ${{ env.workflow_link }}
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `Command "${{ steps.get-pr-comment.outputs.group2 }}" has failed! Output: [Link to pipeline](${workflowLink})`
+            })
+
+
