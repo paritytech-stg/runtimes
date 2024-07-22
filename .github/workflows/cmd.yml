@@ -147,10 +147,10 @@ jobs:
           subweight compare commits \
             --path-pattern "./**/weights/**/*.rs" \
             --method asymptotic \
-            --ignore-errors \
             --format markdown \
             --no-color \
             --change added changed \
+            --ignore-errors \
             'main' \
             ${{ github.head_ref }} >> $GITHUB_STEP_SUMMARY
 

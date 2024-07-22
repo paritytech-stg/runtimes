@@ -31,7 +31,7 @@ if args.command == 'bench':
 
     profile = "release"
 
-    os.system(f"cargo build -p chain-spec-generator --quiet --profile {profile} --features runtime-benchmarks")
+    os.system(f"cargo build -p chain-spec-generator --profile {profile} --features runtime-benchmarks")
 
     # filter out only the specified runtime from runtimes
     if args.runtime:
