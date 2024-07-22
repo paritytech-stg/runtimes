@@ -14,6 +14,60 @@ jobs:
     if: startsWith(github.event.comment.body, '/cmd')
     runs-on: arc-runners-beefy-stg
     steps:
+      - name: Generate a token
+        id: commands_token
+        uses: actions/create-github-app-token@v1.8.1
+        with:
+          app-id: ${{ secrets.COMMAND_APP_ID }}
+          private-key: ${{ secrets.COMMAND_APP_KEY }}
+
+      - name: Build workflow link
+        id: build-link
+        run: |
+          workflowId=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            /repos/${{ github.repository }}/actions/runs/${{ github.run_id }} \
+            --jq .workflow_id)
+
+          workflowLink="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/workflow/${workflowId}"
+
+          echo "workflow_link=${workflowLink}"
+          echo "workflow_link=$workflowLink" >> $GITHUB_ENV
+
+      - name: Comment PR (Start)
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ steps.commands_token.outputs.token }}
+          #        github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            // get username of token
+            const { data: { login: username } } = await github.rest.users.getAuthenticated()
+            
+            // clean previous comments
+            github.rest.issues.listComments({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            }).then(comments => {
+              comments.data.forEach(comment => {
+                if (comment.user.login === username) {
+                  github.rest.issues.deleteComment({
+                    comment_id: comment.id,
+                    owner: context.repo.owner,
+                    repo: context.repo.repo
+                  })
+                }
+              })
+            })
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `Command "${{ steps.get-pr-comment.outputs.group2 }}" has started! Output: [Link to pipeline](${{ env.workflow_link }})`
+            })
+
       - name: Install updates and protobuf-compiler
         run: | 
           sudo apt update && sudo apt install --assume-yes \
@@ -49,27 +103,6 @@ jobs:
         uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
         with:
           shared-key: "fellowship-cmd"
-
-      - name: Generate a token
-        id: commands_token
-        uses: actions/create-github-app-token@v1.8.1
-        with:
-          app-id: ${{ secrets.COMMAND_APP_ID }}
-          private-key: ${{ secrets.COMMAND_APP_KEY }}
-
-      - name: Build workflow link
-        id: build-link
-        run: |
-          workflowId=$(gh api \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            /repos/${{ github.repository }}/actions/runs/${{ github.run_id }} \
-            --jq .workflow_id)
-          
-          workflowLink="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/workflow/${workflowId}"
-  
-          echo "workflow_link=${workflowLink}"
-          echo "workflow_link=$workflowLink" >> $GITHUB_ENV
 
       - name: Run cmd
         id: cmd
