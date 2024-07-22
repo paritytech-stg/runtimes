@@ -27,6 +27,13 @@ jobs:
           app-id: ${{ secrets.COMMAND_APP_ID }}
           private-key: ${{ secrets.COMMAND_APP_KEY }}
 
+      - name: Get command
+        uses: actions-ecosystem/action-regex-match@v2
+        id: get-pr-comment
+        with:
+          text: ${{ github.event.comment.body }}
+          regex: '^(\/cmd )(.*)$'
+
       - name: Build workflow link
         id: build-link
         run: |
@@ -44,15 +51,13 @@ jobs:
           github-token: ${{ steps.commands_token.outputs.token }}
           #        github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            // get username of token
-            console.log(context.payload.sender.login);
-            console.log(context.actor);
+            let workflowLink = '${{ env.workflow_link }}'
             
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `Command "${{ steps.get-pr-comment.outputs.group2 }}" has started! Output: [Link to pipeline](${{ env.workflow_link }})`
+              body: `Command "${{ steps.get-pr-comment.outputs.group2 }}" has started! Output: [Link to pipeline](${workflowLink})`
             })
 
       - name: Checkout
@@ -69,13 +74,6 @@ jobs:
           targets: "wasm32-unknown-unknown"
           components: "rust-src rustfmt clippy"
           toolchain: "nightly-${{env.RUST_NIGHTLY_VERSION}}"
-
-      - name: Get command
-        uses: actions-ecosystem/action-regex-match@v2
-        id: get-pr-comment
-        with:
-          text: ${{ github.event.comment.body }}
-          regex: '^(\/cmd )(.*)$'
 
       - name: Install dependencies for bench
         if: startsWith(steps.get-pr-comment.outputs.group2, 'bench')
