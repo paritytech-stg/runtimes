@@ -79,7 +79,11 @@ jobs:
 
       - name: Install dependencies for bench
         if: startsWith(steps.get-pr-comment.outputs.group2, 'bench')
-        run: cargo install subweight frame-omni-bencher
+        run: cargo install subweight frame-omni-bencher --locked
+
+      - name: Install dependencies for fmt
+        if: startsWith(steps.get-pr-comment.outputs.group2, 'fmt')
+        run: cargo install taplo-cli --locked
 
       - name: Setup Cache
         uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
