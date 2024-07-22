@@ -54,11 +54,22 @@ jobs:
           script: |
             let workflowLink = ${{ env.workflow_link }}
             
-            github.rest.issues.createComment({
+            github.rest.issues.listComments({
               issue_number: context.issue.number,
               owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `Command "${{ steps.get-pr-comment.outputs.group2 }}" has started! Output: [Link to pipeline](${workflowLink})`
+              repo: context.repo.repo
+            }).then(comments => {
+              for (let comment of comments.data) {
+                console.log(comment)
+                console.log(comment.author)
+                if (comment.body.startsWith('Command') && comment.body.includes("Output: ")) {
+                  github.rest.issues.deleteComment({
+                    comment_id: comment.id,
+                    owner: context.repo.owner,
+                    repo: context.repo.repo
+                  })
+                }
+              }
             })
 
       - name: Comment PR (Start)
