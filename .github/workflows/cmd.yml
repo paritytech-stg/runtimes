@@ -24,7 +24,12 @@ jobs:
       - name: Build workflow link
         id: build-link
         run: |
-          workflowId=$(gh api /repos/${{ github.repository }}/actions/runs/${{ github.run_id }} --jq .workflow_id)
+          workflowId=$(curl -s \
+            -H "Authorization: token ${{ steps.commands_token.outputs.token }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }} | jq .workflow_id)
+          
+          echo "workflow_id=${workflowId}"
 
           workflowLink="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/workflow/${workflowId}"
 
