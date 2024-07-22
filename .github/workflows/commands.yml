@@ -57,6 +57,20 @@ jobs:
           app-id: ${{ secrets.COMMAND_APP_ID }}
           private-key: ${{ secrets.COMMAND_APP_KEY }}
 
+      - name: Build workflow link
+        id: build-link
+        run: |
+          workflowId=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            /repos/${{ github.repository }}/actions/runs/${{ github.run_id }} \
+            --jq .workflow_id)
+          
+          workflowLink="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/workflow/${workflowId}"
+  
+          echo "workflow_link=${workflowLink}"
+          echo "workflow_link=$workflowLink" >> $GITHUB_ENV
+
       - name: Run cmd
         id: cmd
         env:
@@ -78,7 +92,7 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `/cmd ${{ steps.get-pr-comment.outputs.group2 }} finished! Output: [Link to pipeline](${{ steps.cmd.outputs.url }})`
+              body: `Command "${{ steps.get-pr-comment.outputs.group2 }}" has finished! Output: [Link to pipeline](${{ env.workflow_link }})`
             })
 
       - name: Commit changes
@@ -89,7 +103,7 @@ jobs:
             
             git pull origin ${{ github.head_ref }}
             git add .
-            git commit -m "Update from command '${{ steps.get-pr-comment.outputs.group2 }}'"
+            git commit -m "Update from ${{ github.actor }} running command '${{ steps.get-pr-comment.outputs.group2 }}'"
             git push origin ${{ github.head_ref }}
           else
             echo "Nothing to commit";
