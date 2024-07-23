@@ -33,20 +33,20 @@ bench_example = '''**Examples**:
 
  > runs all benchmarks
  
- `%(prog)s`
+ %(prog)s
  
  > runs benchmarks for pallet_balances and pallet_multisig for all runtimes which have these pallets
  > --quiet makes it to output nothing to PR but reactions
  
- `%(prog)s --pallet pallet_balances pallet_xcm_benchmarks::generic --quiet`
+ %(prog)s --pallet pallet_balances pallet_xcm_benchmarks::generic --quiet
  
  > runs bench for all pallets for polkadot runtime and continues even if some benchmarks fail
  
- `%(prog)s --runtime polkadot --continue-on-fail` 
+ %(prog)s --runtime polkadot --continue-on-fail 
  
  > does not output anything and cleans up the previous bot's & author command triggering comments in PR 
  
- `%(prog)s --runtime polkadot kusama --pallet pallet_balances pallet_multisig --quiet --clean` 
+ %(prog)s --runtime polkadot kusama --pallet pallet_balances pallet_multisig --quiet --clean 
 
  '''
 
