@@ -37,7 +37,7 @@ jobs:
               body: `<details><summary>Command help:</summary>${{ steps.help.outputs.help }}</details>`
             })
 
-  confirm:
+  acknowledge:
     if: ${{ startsWith(github.event.comment.body, '/cmd') }}
     runs-on: ubuntu-latest
     steps:
@@ -91,8 +91,8 @@ jobs:
           
           echo "job_url=${jobLink}"
           echo "run_url=${runLink}"
-          echo "job_url=$job_url" >> $GITHUB_ENV
-          echo "run_url=$run_url" >> $GITHUB_ENV
+          echo "job_url=$job_url" >> $GITHUB_OUTPUT
+          echo "run_url=$run_url" >> $GITHUB_OUTPUT
 
       - name: Clean previous comments
         if:  ${{ contains(github.event.comment.body, '--clean') }}
@@ -100,8 +100,6 @@ jobs:
         with:
           github-token: ${{ steps.commands_token.outputs.token }}
           script: |
-            let workflowLink = ${{ env.job_url }}
-            
             github.rest.issues.listComments({
               issue_number: context.issue.number,
               owner: context.repo.owner,
@@ -126,7 +124,7 @@ jobs:
         with:
           github-token: ${{ steps.commands_token.outputs.token }}
           script: |
-            let job_url = ${{ env.job_url }}
+            let job_url = ${{ steps.build-link.outputs.job_url }}
             
             github.rest.issues.createComment({
               issue_number: context.issue.number,
@@ -206,7 +204,7 @@ jobs:
         with:
           github-token: ${{ steps.commands_token.outputs.token }}
           script: |
-            let runUrl = ${{ env.run_url }}
+            let runUrl = ${{ steps.build-link.outputs.run_url }}
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
@@ -220,7 +218,7 @@ jobs:
         with:
           github-token: ${{ steps.commands_token.outputs.token }}
           script: |
-            let jobUrl = ${{ env.job_url }}
+            let jobUrl = ${{ steps.build-link.outputs.job_url }}
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
