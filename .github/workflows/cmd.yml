@@ -21,11 +21,9 @@ jobs:
       - name: Save output of help
         id: help
         run: |
-          {
-              echo 'help<<EOF'
-              $(python3 .github/scripts/cmd/cmd.py --help)
-              echo EOF
-          } >> $GITHUB_OUTPUT
+          echo 'help<<EOF' >> $GITHUB_OUTPUT
+          python3 .github/scripts/cmd/cmd.py --help >> $GITHUB_OUTPUT
+          echo 'EOF' >> $GITHUB_OUTPUT
 
       - name: Comment PR (Help)
         uses: actions/github-script@v7
@@ -49,7 +47,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             github.rest.reactions.createForIssueComment({
-              comment_id: ${{ github.event.issue }},
+              comment_id: ${{ github.event.issue.number }},
               owner: context.repo.owner,
               repo: context.repo.repo,
               content: 'eyes'
