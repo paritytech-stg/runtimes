@@ -13,7 +13,7 @@ class _HelpAction(argparse._HelpAction):
         for subparsers_action in subparsers_actions:
             # get all subparsers and print help
             for choice, subparser in subparsers_action.choices.items():
-                print("\n----> Command '{}'".format(choice))
+                print("\n### Command '{}'".format(choice))
                 print(subparser.format_help())
 
         parser.exit()
