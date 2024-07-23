@@ -55,7 +55,7 @@ jobs:
 
   cmd:
     if: ${{ startsWith(github.event.comment.body, '/cmd') && !contains(github.event.comment.body, '--help') }}
-    runs-on: arc-runners-beefy-stg
+    runs-on: ${{ startsWith(github.event.comment.body, '/cmd bench') && 'arc-runners-beefy-stg' || 'ubuntu-22.04' }}
     steps:
       - name: Install updates and protobuf-compiler
         run: |
