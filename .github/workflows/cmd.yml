@@ -74,8 +74,7 @@ jobs:
             }).then(comments => {
               for (let comment of comments.data) {
                 console.log(comment)
-                console.log(comment.author)
-                if (comment.body.startsWith('Command') && comment.author.login === 'github-actions[bot]') {
+                if (comment.body.startsWith('Command') && comment.user.login === 'github-actions[bot]') {
                   github.rest.issues.deleteComment({
                     comment_id: comment.id,
                     owner: context.repo.owner,
