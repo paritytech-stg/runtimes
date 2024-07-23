@@ -42,15 +42,15 @@ jobs:
     if: ${{ startsWith(github.event.comment.body, '/cmd') }}
     runs-on: ubuntu-latest
     steps:
-      - name: Add reaction
+      - name: Add reaction to triggered comment
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            github.rest.reactions.createForIssue({
+            github.rest.reactions.createForIssueComment({
+              comment_id: context.issue.comment_id,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: context.issue.number,
               content: 'eyes'
             })
 
@@ -111,7 +111,7 @@ jobs:
               for (let comment of comments.data) {
                 console.log(comment)
                 console.log(comment.author)
-                if (comment.body.startsWith('Command') && comment.body.includes("Output: ")) {
+                if (comment.body.startsWith('Command') && comment.author.login === 'github-actions[bot]') {
                   github.rest.issues.deleteComment({
                     comment_id: comment.id,
                     owner: context.repo.owner,
