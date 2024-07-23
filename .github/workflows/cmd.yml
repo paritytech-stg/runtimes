@@ -29,12 +29,12 @@ jobs:
 
   clean:
     runs-on: ubuntu-latest
-    if: ${{ startsWith(github.event.comment.body, '/cmd') && contains(github.event.comment.body, '--clean') }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Generate a token
+        if: ${{ startsWith(github.event.comment.body, '/cmd') && contains(github.event.comment.body, '--clean') }}
         id: commands_token
         uses: actions/create-github-app-token@v1.8.1
         with:
@@ -43,7 +43,7 @@ jobs:
 
 
       - name: Clean previous comments
-        if: ${{ contains(github.event.comment.body, '--clean') }}
+        if: ${{ startsWith(github.event.comment.body, '/cmd') && contains(github.event.comment.body, '--clean') }}
         uses: actions/github-script@v7
         with:
           github-token: ${{ steps.commands_token.outputs.token }}
