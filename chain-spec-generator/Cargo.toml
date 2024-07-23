@@ -52,6 +52,7 @@ runtime-benchmarks = [
 	"coretime-kusama-runtime/runtime-benchmarks",
 	"cumulus-primitives-core/runtime-benchmarks",
 	"encointer-kusama-runtime/runtime-benchmarks",
+	"encointer-kusama-runtime/runtime-benchmarks",
 	"glutton-kusama-runtime/runtime-benchmarks",
 	"kusama-runtime/runtime-benchmarks",
 	"pallet-staking/runtime-benchmarks",
@@ -62,5 +63,4 @@ runtime-benchmarks = [
 	"polkadot-runtime/runtime-benchmarks",
 	"runtime-parachains/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
-	"encointer-kusama-runtime/runtime-benchmarks"
 ]

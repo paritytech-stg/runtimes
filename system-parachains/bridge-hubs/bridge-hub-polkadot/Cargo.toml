@@ -136,6 +136,7 @@ std = [
 	"bp-kusama/std",
 	"bp-messages/std",
 	"bp-parachains/std",
+	"bp-polkadot-bulletin/std",
 	"bp-polkadot-core/std",
 	"bp-polkadot/std",
 	"bp-relayers/std",
@@ -213,11 +214,10 @@ std = [
 	"sp-version/std",
 	"substrate-wasm-builder",
 	"system-parachains-constants/std",
+	"tuplex/std",
 	"xcm-builder/std",
 	"xcm-executor/std",
 	"xcm/std",
-	"bp-polkadot-bulletin/std",
-	"tuplex/std"
 ]
 
 runtime-benchmarks = [
@@ -301,4 +301,4 @@ metadata-hash = ["substrate-wasm-builder?/metadata-hash"]
 # A feature that should be enabled when the runtime should be built for on-chain
 # deployment. This will disable stuff that shouldn't be part of the on-chain wasm
 # to make it smaller, like logging for example.
-on-chain-release-build = ["sp-api/disable-logging", "metadata-hash"]
+on-chain-release-build = ["metadata-hash", "sp-api/disable-logging"]

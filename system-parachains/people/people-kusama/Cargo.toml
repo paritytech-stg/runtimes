@@ -91,8 +91,8 @@ std = [
 	"cumulus-pallet-xcmp-queue/std",
 	"cumulus-primitives-aura/std",
 	"cumulus-primitives-core/std",
-	"cumulus-primitives-utility/std",
 	"cumulus-primitives-storage-weight-reclaim/std",
+	"cumulus-primitives-utility/std",
 	"enumflags2/std",
 	"frame-benchmarking?/std",
 	"frame-executive/std",
@@ -122,6 +122,7 @@ std = [
 	"parachain-info/std",
 	"parachains-common/std",
 	"polkadot-parachain-primitives/std",
+	"polkadot-primitives/std",
 	"polkadot-runtime-common/std",
 	"scale-info/std",
 	"serde",
@@ -143,7 +144,6 @@ std = [
 	"xcm-builder/std",
 	"xcm-executor/std",
 	"xcm/std",
-	"polkadot-primitives/std"
 ]
 
 runtime-benchmarks = [
@@ -168,11 +168,11 @@ runtime-benchmarks = [
 	"pallet-xcm/runtime-benchmarks",
 	"parachains-common/runtime-benchmarks",
 	"polkadot-parachain-primitives/runtime-benchmarks",
+	"polkadot-primitives/runtime-benchmarks",
 	"polkadot-runtime-common/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"xcm-builder/runtime-benchmarks",
 	"xcm-executor/runtime-benchmarks",
-	"polkadot-primitives/runtime-benchmarks"
 ]
 
 try-runtime = [
@@ -208,4 +208,4 @@ metadata-hash = ["substrate-wasm-builder/metadata-hash"]
 # A feature that should be enabled when the runtime should be built for on-chain
 # deployment. This will disable stuff that shouldn't be part of the on-chain wasm
 # to make it smaller, like logging for example.
-on-chain-release-build = ["sp-api/disable-logging", "metadata-hash"]
+on-chain-release-build = ["metadata-hash", "sp-api/disable-logging"]
