@@ -33,7 +33,7 @@ BENCH
 """
 
 bench_example = '''**Examples:**
-```sh
+```bash
  # runs all benchmarks
  %(prog)s
  
