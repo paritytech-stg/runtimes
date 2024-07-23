@@ -37,6 +37,32 @@ jobs:
               body: `<details><summary>Command help:</summary>${{ steps.help.outputs.help }}</details>`
             })
 
+      - name: Add 😕 reaction on failure
+        uses: actions/github-script@v7
+        if: ${{ failure() }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            github.rest.reactions.createForIssueComment({
+              comment_id: ${{ github.event.comment.id }},
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              content: 'confused'
+            })
+
+      - name: Add 🚀 reaction on success
+        uses: actions/github-script@v7
+        if: ${{ !failure() }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            github.rest.reactions.createForIssueComment({
+              comment_id: ${{ github.event.comment.id }},
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              content: 'rocket'
+            })
+
   acknowledge:
     if: ${{ startsWith(github.event.comment.body, '/cmd') }}
     runs-on: ubuntu-latest
@@ -233,6 +259,32 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: `Command "${{ steps.get-pr-comment.outputs.group2 }}" has failed! Output: [Link to pipeline](${jobUrl})`
+            })
+
+      - name: Add ?? reaction on failure
+        uses: actions/github-script@v7
+        if: ${{ failure() }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            github.rest.reactions.createForIssueComment({
+              comment_id: ${{ github.event.comment.id }},
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              content: 'confused'
+            })
+
+      - name: Add 🚀 reaction on success
+        uses: actions/github-script@v7
+        if: ${{ !failure() }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            github.rest.reactions.createForIssueComment({
+              comment_id: ${{ github.event.comment.id }},
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              content: 'rocket'
             })
 
 
