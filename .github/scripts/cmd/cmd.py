@@ -20,16 +20,13 @@ common_args = {
     '--clean': {"action": "store_true", "help": "Clean up the previous bot's & author's comments in Pull Request which triggered /cmd"},
 }
 
-
 parser = argparse.ArgumentParser(prog="/cmd ", description='A command runner for polkadot runtimes repo', add_help=False)
 parser.add_argument('--help', action=_HelpAction, help='help for help if you need some help')  # help for help
 
 subparsers = parser.add_subparsers(help='a command to run', dest='command')
 
 """
-
 BENCH 
-
 """
 
 bench_example = '''**Examples**:
@@ -62,9 +59,7 @@ parser_bench.add_argument('--runtime', help='Runtime(s) space separated', choice
 parser_bench.add_argument('--pallet', help='Pallet(s) space separated', nargs='*')
 
 """
-
 FMT 
-
 """
 parser_fmt = subparsers.add_parser('fmt', help='Formats code')
 for arg, config in common_args.items():
