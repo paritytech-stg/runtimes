@@ -15,9 +15,9 @@ runtimesMatrix = json.load(f)
 runtimeNames = list(map(lambda x: x['name'], runtimesMatrix))
 
 common_args = {
-    '--continue-on-fail': {"action": "store_true", "help": "Won't exit on failed command"},
+    '--continue-on-fail': {"action": "store_true", "help": "Won't exit(1) on failed command and continue with next steps"},
     '--quiet': {"action": "store_true", "help": "Won't print start/end/failed messages in Pull Request"},
-    '--clean': {"action": "store_true", "help": "Will clean up the previous bot's comments in Pull Request"},
+    '--clean': {"action": "store_true", "help": "Clean up the previous bot's & author's comments in Pull Request which triggered /cmd"},
 }
 
 
@@ -31,7 +31,25 @@ subparsers = parser.add_subparsers(help='a command to run', dest='command')
 BENCH 
 
 """
-parser_bench = subparsers.add_parser('bench', help='Runs benchmarks')
+
+bench_example = '''**Examples:**
+```sh
+ # runs all benchmarks
+ %(prog)s
+ 
+ # runs benchmarks for pallet_balances and pallet_multisig for all runtimes which have these pallets
+ # --quiet makes it to output nothing to PR but reactions
+ %(prog)s --pallet pallet_balances pallet_xcm_benchmarks::generic --quiet
+ 
+ # runs bench for all pallets for polkadot runtime and continues even if some benchmarks fail
+ %(prog)s --runtime polkadot --continue-on-fail 
+ 
+ # does not output anything and cleans up the previous bot's & author command triggering comments in PR 
+ %(prog)s --runtime polkadot kusama --pallet pallet_balances pallet_multisig --quiet --clean 
+```
+ '''
+
+parser_bench = subparsers.add_parser('bench', help='Runs benchmarks', epilog=bench_example, formatter_class=argparse.RawDescriptionHelpFormatter)
 
 for arg, config in common_args.items():
     parser_bench.add_argument(arg, **config)
