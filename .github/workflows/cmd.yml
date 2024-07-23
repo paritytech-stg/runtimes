@@ -53,6 +53,16 @@ jobs:
               content: 'eyes'
             })
 
+  cmd:
+    if: ${{ startsWith(github.event.comment.body, '/cmd') && !contains(github.event.comment.body, '--help') }}
+    runs-on: ${{ startsWith(github.event.comment.body, '/cmd bench') && 'arc-runners-beefy-stg' || 'ubuntu-22.04' }}
+    steps:
+      - name: Install updates and protobuf-compiler
+        if: startsWith(github.event.comment.body, '/cmd bench')
+        run: |
+          sudo apt update && sudo apt install --assume-yes \
+            openssl pkg-config g++ make cmake protobuf-compiler curl libssl-dev libclang-dev libudev-dev git jq
+
       - name: Generate a token
         id: commands_token
         uses: actions/create-github-app-token@v1.8.1
@@ -89,23 +99,6 @@ jobs:
                 }
               }
             })
-
-  cmd:
-    if: ${{ startsWith(github.event.comment.body, '/cmd') && !contains(github.event.comment.body, '--help') }}
-    runs-on: ${{ startsWith(github.event.comment.body, '/cmd bench') && 'arc-runners-beefy-stg' || 'ubuntu-22.04' }}
-    steps:
-      - name: Install updates and protobuf-compiler
-        if: startsWith(github.event.comment.body, '/cmd bench')
-        run: |
-          sudo apt update && sudo apt install --assume-yes \
-            openssl pkg-config g++ make cmake protobuf-compiler curl libssl-dev libclang-dev libudev-dev git jq
-
-      - name: Generate a token
-        id: commands_token
-        uses: actions/create-github-app-token@v1.8.1
-        with:
-          app-id: ${{ secrets.COMMAND_APP_ID }}
-          private-key: ${{ secrets.COMMAND_APP_KEY }}
 
       - name: Get command
         uses: actions-ecosystem/action-regex-match@v2
