@@ -11,8 +11,32 @@ permissions: # allow the action to comment on the PR
   actions: read
 
 jobs:
+  help:
+    if: ${{ startsWith(github.event.comment.body, '/cmd') && contains(github.event.comment.body, '--help') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Save output of help
+        id: help
+        run: |
+          echo "Command help: "
+          help=$(python3 .github/scripts/cmd/cmd.py --help)
+          
+          echo "help=$help" >> $GITHUB_OUTPUT
+
+      - name: Comment PR (Help)
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `Command help: ${{ steps.help.outputs.help }}`
+            })
+
   cmd:
-    if: startsWith(github.event.comment.body, '/cmd')
+    if: ${{ startsWith(github.event.comment.body, '/cmd') && !contains(github.event.comment.body, '--help') }}
     runs-on: arc-runners-beefy-stg
     steps:
       - name: Install updates and protobuf-compiler
@@ -37,22 +61,28 @@ jobs:
       - name: Build workflow link
         id: build-link
         run: |
-          workflowLink=$(curl -s \
+          jobLink=$(curl -s \
             -H "Authorization: token ${{ steps.commands_token.outputs.token }}" \
             -H "Accept: application/vnd.github.v3+json" \
             https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/jobs | jq '.jobs[0].html_url')
           
-          echo "workflow_link=${workflowLink}"
-          echo "workflow_link=$workflowLink" >> $GITHUB_ENV
+          runLink=$(curl -s \
+            -H "Authorization: token ${{ steps.commands_token.outputs.token }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }} | jq '.html_url')
+          
+          echo "job_url=${jobLink}"
+          echo "run_url=${runLink}"
+          echo "job_url=$job_url" >> $GITHUB_ENV
+          echo "run_url=$run_url" >> $GITHUB_ENV
 
       - name: Clean previous comments
         if:  ${{ contains(github.event.comment.body, '--clean') }}
         uses: actions/github-script@v7
         with:
           github-token: ${{ steps.commands_token.outputs.token }}
-          #        github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            let workflowLink = ${{ env.workflow_link }}
+            let workflowLink = ${{ env.job_url }}
             
             github.rest.issues.listComments({
               issue_number: context.issue.number,
@@ -77,15 +107,14 @@ jobs:
         uses: actions/github-script@v7
         with:
           github-token: ${{ steps.commands_token.outputs.token }}
-          #        github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            let workflowLink = ${{ env.workflow_link }}
+            let job_url = ${{ env.job_url }}
             
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `Command "${{ steps.get-pr-comment.outputs.group2 }}" has started! Output: [Link to pipeline](${workflowLink})`
+              body: `Command "${{ steps.get-pr-comment.outputs.group2 }}" has started! Output: [Link to pipeline](${job_url})`
             })
 
       - name: Checkout
@@ -158,14 +187,13 @@ jobs:
         uses: actions/github-script@v7
         with:
           github-token: ${{ steps.commands_token.outputs.token }}
-  #        github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            let workflowLink = ${{ env.workflow_link }}
+            let runUrl = ${{ env.run_url }}
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `Command "${{ steps.get-pr-comment.outputs.group2 }}" has finished! Output: [Link to pipeline](${workflowLink})`
+              body: `Command "${{ steps.get-pr-comment.outputs.group2 }}" has finished! Output: [Link to pipeline](${runUrl})`
             })
 
       - name: Comment PR (Failure)
@@ -174,12 +202,12 @@ jobs:
         with:
           github-token: ${{ steps.commands_token.outputs.token }}
           script: |
-            let workflowLink = ${{ env.workflow_link }}
+            let jobUrl = ${{ env.job_url }}
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `Command "${{ steps.get-pr-comment.outputs.group2 }}" has failed! Output: [Link to pipeline](${workflowLink})`
+              body: `Command "${{ steps.get-pr-comment.outputs.group2 }}" has failed! Output: [Link to pipeline](${jobUrl})`
             })
 
 

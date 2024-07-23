@@ -41,3 +41,4 @@ target/
 # act
 .secrets
 act_*.json
+**/__pycache__/

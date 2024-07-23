@@ -5,33 +5,61 @@ import sys
 import json
 import argparse
 import tempfile
+import _help
+
+_HelpAction = _help._HelpAction
 
 f = open('.github/workflows/runtimes-matrix.json', 'r')
 runtimesMatrix = json.load(f)
 
 runtimeNames = list(map(lambda x: x['name'], runtimesMatrix))
 
-parser = argparse.ArgumentParser(description='A command runner for polkadot runtimes repo')
-parser.add_argument('--quiet', help="")
-parser.add_argument('--clean', help="")
+common_args = {
+    '--continue-on-fail': {"action": "store_true", "help": "Won't exit on failed command"},
+    '--quiet': {"action": "store_true", "help": "Won't print start/end/failed messages in Pull Request"},
+    '--clean': {"action": "store_true", "help": "Will clean up the previous bot's comments in Pull Request"},
+}
+
+
+parser = argparse.ArgumentParser(prog="/cmd ", description='A command runner for polkadot runtimes repo', add_help=False)
+parser.add_argument('--help', action=_HelpAction, help='help for help if you need some help')  # help for help
+
 subparsers = parser.add_subparsers(help='a command to run', dest='command')
 
+"""
+
+BENCH 
+
+"""
 parser_bench = subparsers.add_parser('bench', help='Runs benchmarks')
+
+for arg, config in common_args.items():
+    parser_bench.add_argument(arg, **config)
+
 parser_bench.add_argument('--runtime', help='Runtime(s) space separated', choices=runtimeNames, nargs='*')
 parser_bench.add_argument('--pallet', help='Pallet(s) space separated', nargs='*')
 
-parser_fmt = subparsers.add_parser('fmt', help='Formats code')
+"""
 
-args = parser.parse_args()
+FMT 
+
+"""
+parser_fmt = subparsers.add_parser('fmt', help='Formats code')
+for arg, config in common_args.items():
+    parser_fmt.add_argument(arg, **config)
+
+args, unknown = parser.parse_known_args()
+
+print(f'args: {args}')
 
 if args.command == 'bench':
     tempdir = tempfile.TemporaryDirectory()
     print(f'Created temp dir: {tempdir.name}')
     runtime_pallets_map = {}
+    failed_benchmarks = {}
+    successful_benchmarks = {}
 
     profile = "release"
-
-    os.system(f"cargo build -p chain-spec-generator --profile {profile} --features runtime-benchmarks")
 
     # filter out only the specified runtime from runtimes
     if args.runtime:
@@ -44,10 +72,12 @@ if args.command == 'bench':
 
     # loop over remaining runtimes to collect available pallets
     for runtime in runtimesMatrix.values():
+        os.system(f"cargo build -p {runtime['package']} --profile {profile} --features runtime-benchmarks")
         print(f'-- listing pallets for benchmark for {runtime["name"]}')
         wasm_file = f"target/{profile}/wbuild/{runtime['package']}/{runtime['package'].replace('-', '_')}.wasm"
-        output = os.popen(f"frame-omni-bencher v1 benchmark pallet --all --list --runtime={wasm_file}").read()
-        raw_pallets = output.split('\n')[1:]  # skip the first line with header
+        output = os.popen(
+            f"frame-omni-bencher v1 benchmark pallet --no-csv-header --all --list --runtime={wasm_file}").read()
+        raw_pallets = output.split('\n')
 
         all_pallets = set()
         for pallet in raw_pallets:
@@ -88,26 +118,54 @@ if args.command == 'bench':
         for pallet in runtime_pallets_map[runtime]:
             config = runtimesMatrix[runtime]
             print(f'-- config: {config}')
-            output_path = f"./{config['path']}/src/weights/{pallet.replace('::', '_')}.rs";
+            default_path = f"./{config['path']}/src/weights/{pallet.replace('::', '_')}.rs"
+            xcm_path = f"./{config['path']}/src/weights/xcm/{pallet.replace('::', '_')}.rs"
+            output_path = default_path if not pallet.startswith("pallet_xcm_benchmarks") else xcm_path
             print(f'-- benchmarking {pallet} in {runtime} into {output_path}')
 
-            os.system(f"frame-omni-bencher v1 benchmark pallet "
-                      f"--extrinsic=* "
-                      f"--runtime=target/{profile}/wbuild/{config['package']}/{config['package'].replace('-', '_')}.wasm "
-                      f"--pallet={pallet} "
-                      f"--header={header_path} "
-                      f"--output={output_path} "
-                      f"--wasm-execution=compiled  "
-                      f"--steps=50 "
-                      f"--repeat=20 "
-                      f"--heap-pages=4096 "
-                      )
+            status = os.system(f"frame-omni-bencher v1 benchmark pallet "
+                               f"--extrinsic=* "
+                               f"--runtime=target/{profile}/wbuild/{config['package']}/{config['package'].replace('-', '_')}.wasm "
+                               f"--pallet={pallet} "
+                               f"--header={header_path} "
+                               f"--output={output_path} "
+                               f"--wasm-execution=compiled  "
+                               f"--steps=50 "
+                               f"--repeat=20 "
+                               f"--heap-pages=4096 "
+                               )
+            if status != 0 and not args.continue_on_fail:
+                print(f'Failed to benchmark {pallet} in {runtime}')
+                sys.exit(1)
+
+            # Otherwise collect failed benchmarks and print them at the end
+            # push failed pallets to failed_benchmarks
+            if status != 0:
+                failed_benchmarks[f'{runtime}'] = failed_benchmarks.get(f'{runtime}', []) + [pallet]
+            else:
+                successful_benchmarks[f'{runtime}'] = successful_benchmarks.get(f'{runtime}', []) + [pallet]
+
+    if failed_benchmarks:
+        print('❌ Failed benchmarks of runtimes/pallets:')
+        for runtime, pallets in failed_benchmarks.items():
+            print(f'-- {runtime}: {pallets}')
+
+    if successful_benchmarks:
+        print('✅ Successful benchmarks of runtimes/pallets:')
+        for runtime, pallets in successful_benchmarks.items():
+            print(f'-- {runtime}: {pallets}')
 
     tempdir.cleanup()
 
 elif args.command == 'fmt':
     nightly_version = os.getenv('RUST_NIGHTLY_VERSION')
-    os.system(f'cargo +nightly-{nightly_version} fmt')
-    os.system('taplo format --config .config/taplo.toml')
+    command = f"cargo +nightly-{nightly_version} fmt";
+    print('Formatting with `{command}`')
+    nightly_status = os.system(f'{command}')
+    taplo_status = os.system('taplo format --config .config/taplo.toml')
 
-print('Done')
+    if (nightly_status != 0 or taplo_status != 0) and not args.continue_on_fail:
+        print('❌ Failed to format code')
+        sys.exit(1)
+
+print('🚀 Done')
