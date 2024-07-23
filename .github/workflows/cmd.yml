@@ -91,8 +91,8 @@ jobs:
           
           echo "job_url=${jobLink}"
           echo "run_url=${runLink}"
-          echo "job_url=$job_url" >> $GITHUB_OUTPUT
-          echo "run_url=$run_url" >> $GITHUB_OUTPUT
+          echo "job_url=$jobLink" >> $GITHUB_OUTPUT
+          echo "run_url=$runLink" >> $GITHUB_OUTPUT
 
       - name: Clean previous comments
         if:  ${{ contains(github.event.comment.body, '--clean') }}
