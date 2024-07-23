@@ -75,8 +75,11 @@ jobs:
               for (let comment of comments.data) {
                 console.log(comment)
                 if (
-                  (comment.body.startsWith('Command') && comment.user.type === 'Bot') ||
-                  (comment.body.startsWith('/cmd') && comment.user.login === context.actor)
+                  ${{ github.event.comment.id }} !== comment.id &&
+                    (
+                      (comment.body.startsWith('Command') && comment.user.type === 'Bot') ||
+                      (comment.body.startsWith('/cmd') && comment.user.login === context.actor)
+                    )
                 ) {
                   github.rest.issues.deleteComment({
                     comment_id: comment.id,
