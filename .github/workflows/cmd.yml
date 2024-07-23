@@ -50,7 +50,7 @@ jobs:
               content: 'confused'
             })
 
-      - name: Add 🚀 reaction on success
+      - name: Add 👍 reaction on success
         uses: actions/github-script@v7
         if: ${{ !failure() }}
         with:
@@ -60,7 +60,7 @@ jobs:
               comment_id: ${{ github.event.comment.id }},
               owner: context.repo.owner,
               repo: context.repo.repo,
-              content: 'rocket'
+              content: '+1'
             })
 
   acknowledge:
@@ -274,7 +274,7 @@ jobs:
               content: 'confused'
             })
 
-      - name: Add 🚀 reaction on success
+      - name: Add 👍 reaction on success
         uses: actions/github-script@v7
         if: ${{ !failure() }}
         with:
@@ -284,7 +284,7 @@ jobs:
               comment_id: ${{ github.event.comment.id }},
               owner: context.repo.owner,
               repo: context.repo.repo,
-              content: 'rocket'
+              content: '+1'
             })
 
 
