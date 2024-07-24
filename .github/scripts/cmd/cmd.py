@@ -55,8 +55,8 @@ parser_bench = subparsers.add_parser('bench', help='Runs benchmarks', epilog=ben
 for arg, config in common_args.items():
     parser_bench.add_argument(arg, **config)
 
-parser_bench.add_argument('--runtime', help='Runtime(s) space separated', choices=runtimeNames, nargs='*')
-parser_bench.add_argument('--pallet', help='Pallet(s) space separated', nargs='*')
+parser_bench.add_argument('--runtime', help='Runtime(s) space separated', choices=runtimeNames, nargs='*', default=runtimeNames)
+parser_bench.add_argument('--pallet', help='Pallet(s) space separated', nargs='*', default=[])
 
 """
 FMT 
@@ -78,14 +78,11 @@ if args.command == 'bench':
 
     profile = "release"
 
-    # filter out only the specified runtime from runtimes
-    if args.runtime:
-        print(f'Provided runtimes: {args.runtime}')
-        runtimesMatrix = list(filter(lambda x: x['name'] in args.runtime, runtimesMatrix))
-        # convert to mapped dict
-        runtimesMatrix = {x['name']: x for x in runtimesMatrix}
-
-        print(f'Filtered out runtimes: {runtimesMatrix}')
+    print(f'Provided runtimes: {args.runtime}')
+    # convert to mapped dict
+    runtimesMatrix = list(filter(lambda x: x['name'] in args.runtime, runtimesMatrix))
+    runtimesMatrix = {x['name']: x for x in runtimesMatrix}
+    print(f'Filtered out runtimes: {runtimesMatrix}')
 
     # loop over remaining runtimes to collect available pallets
     for runtime in runtimesMatrix.values():
