@@ -1,5 +1,12 @@
 import argparse
 
+"""
+
+Custom help action for argparse, it prints the help message for the main parser and all subparsers.
+
+"""
+
+
 class _HelpAction(argparse._HelpAction):
     def __call__(self, parser, namespace, values, option_string=None):
         parser.print_help()

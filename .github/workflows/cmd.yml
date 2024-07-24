@@ -10,6 +10,9 @@ permissions: # allow the action to comment on the PR
   pull-requests: write
   actions: read
 
+env:
+  TAPLO_VERSION: '0.8.1'
+
 jobs:
   acknowledge:
     if: ${{ startsWith(github.event.comment.body, '/cmd') }}
@@ -58,7 +61,7 @@ jobs:
                 if (
                   ${{ github.event.comment.id }} !== comment.id &&
                     (
-                      (comment.body.startsWith('Command') && comment.user.type === 'Bot') ||
+                      ((comment.body.startsWith('Command') || comment.body.startsWith('<details><summary>Command')) && comment.user.type === 'Bot') ||
                       (comment.body.startsWith('/cmd') && comment.user.login === context.actor)
                     )
                 ) {
@@ -214,7 +217,7 @@ jobs:
 
       - name: Install dependencies for fmt
         if: startsWith(steps.get-pr-comment.outputs.group2, 'fmt')
-        run: cargo install taplo-cli --version 0.8.1
+        run: cargo install taplo-cli --version ${{ env.TAPLO_VERSION }}
 
       - name: Setup Cache
         uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0

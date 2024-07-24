@@ -15,9 +15,12 @@ runtimesMatrix = json.load(f)
 runtimeNames = list(map(lambda x: x['name'], runtimesMatrix))
 
 common_args = {
-    '--continue-on-fail': {"action": "store_true", "help": "Won't exit(1) on failed command and continue with next steps"},
+    '--continue-on-fail': {"action": "store_true", "help": "Won't exit(1) on failed command and continue with next "
+                                                           "steps. Helpful when you want to push at least successful "
+                                                           "pallets, and then run failed ones separately"},
     '--quiet': {"action": "store_true", "help": "Won't print start/end/failed messages in Pull Request"},
-    '--clean': {"action": "store_true", "help": "Clean up the previous bot's & author's comments in Pull Request which triggered /cmd"},
+    '--clean': {"action": "store_true", "help": "Clean up the previous bot's & author's comments in Pull Request "
+                                                "which triggered /cmd"},
 }
 
 parser = argparse.ArgumentParser(prog="/cmd ", description='A command runner for polkadot runtimes repo', add_help=False)
