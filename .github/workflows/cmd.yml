@@ -134,6 +134,8 @@ jobs:
 
   cmd:
     needs: clean
+    env:
+      JOB_NAME: 'cmd'
     if: ${{ startsWith(github.event.comment.body, '/cmd') && !contains(github.event.comment.body, '--help') }}
     runs-on: ${{ startsWith(github.event.comment.body, '/cmd bench') && 'arc-runners-beefy-stg' || 'ubuntu-22.04' }}
     steps:
@@ -163,7 +165,7 @@ jobs:
           jobLink=$(curl -s \
             -H "Authorization: token ${{ steps.commands_token.outputs.token }}" \
             -H "Accept: application/vnd.github.v3+json" \
-            https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/jobs | jq '.jobs[1].html_url')
+            https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/jobs | jq '.jobs[] | select(.name | contains(${{ env.JOB_NAME }})) | .html_url')
           
           runLink=$(curl -s \
             -H "Authorization: token ${{ steps.commands_token.outputs.token }}" \
