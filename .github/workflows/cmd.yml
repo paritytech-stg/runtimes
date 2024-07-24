@@ -163,6 +163,7 @@ jobs:
           regex: '^(\/cmd )(.*)$'
 
       - name: Build workflow link
+        if:  ${{ !contains(github.event.comment.body, '--quiet') }}
         id: build-link
         run: |
           jobLink=$(curl -s \
