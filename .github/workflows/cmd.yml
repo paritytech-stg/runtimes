@@ -244,7 +244,7 @@ jobs:
             
             git pull origin ${{ github.head_ref }}
             git add .
-            git restore --staged Cargo.* # ignore changes to Cargo.toml and Cargo.lock
+            git restore --staged Cargo.lock # ignore changes in Cargo.lock
             git commit -m "Update from ${{ github.actor }} running command '${{ steps.get-pr-comment.outputs.group2 }}'" || true
             git push origin ${{ github.head_ref }}
           else
