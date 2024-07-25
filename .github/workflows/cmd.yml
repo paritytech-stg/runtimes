@@ -261,7 +261,7 @@ jobs:
             --no-color \
             --change added changed \
             --ignore-errors \
-            main ${{ github.ref }})
+            refs/heads/main ${{ github.ref }})
           
           # Save the multiline result to the output
           echo 'result<<EOF' >> $GITHUB_OUTPUT
