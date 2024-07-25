@@ -194,7 +194,7 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `Command "${{ steps.get-pr-comment.outputs.group2 }}" has started! Output: [Link to pipeline](${job_url})`
+              body: `Command "${{ steps.get-pr-comment.outputs.group2 }}" has started! [See logs here](${job_url})`
             })
 
       - name: Checkout
@@ -252,16 +252,19 @@ jobs:
           fi
 
       - name: Run Subweight
+        id: subweight
         if: startsWith(steps.get-pr-comment.outputs.group2, 'bench')
         run: |
-          subweight compare commits \
+          result=$(subweight compare commits \
             --path-pattern "./**/weights/**/*.rs" \
             --method asymptotic \
             --format markdown \
             --no-color \
             --change added changed \
             --ignore-errors \
-            main ${{ github.ref }} >> $GITHUB_STEP_SUMMARY
+            main ${{ github.ref }})
+          
+          echo "result=$result" >> $GITHUB_OUTPUT
 
       - name: Comment PR (End)
         if: ${{ !failure() && !contains(github.event.comment.body, '--quiet') }}
@@ -270,11 +273,17 @@ jobs:
           github-token: ${{ steps.commands_token.outputs.token }}
           script: |
             let runUrl = ${{ steps.build-link.outputs.run_url }}
+            let subweight = `${{ steps.subweight.outputs.result }}`;
+            
+            console.log(subweight, !!subweight)
+            
+            let subweightCollapsed = subweight ? `\n\n<details><summary>Subweight results:</summary>${subweight}</details>` : '';
+            
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `Command "${{ steps.get-pr-comment.outputs.group2 }}" has finished! Output: [Link to pipeline](${runUrl})`
+              body: `Command "${{ steps.get-pr-comment.outputs.group2 }}" has finished! [See logs here](${runUrl})${subweightCollapsed}`
             })
 
       - name: Comment PR (Failure)
@@ -288,7 +297,7 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `Command "${{ steps.get-pr-comment.outputs.group2 }}" has failed! Output: [Link to pipeline](${jobUrl})`
+              body: `Command "${{ steps.get-pr-comment.outputs.group2 }}" has failed! [See logs here](${jobUrl})`
             })
 
       - name: Add ?? reaction on failure
