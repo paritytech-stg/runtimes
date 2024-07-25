@@ -254,6 +254,7 @@ jobs:
         id: subweight
         if: startsWith(steps.get-pr-comment.outputs.group2, 'bench')
         run: |
+          git fetch
           result=$(subweight compare commits \
             --path-pattern "./**/weights/**/*.rs" \
             --method asymptotic \
@@ -261,7 +262,7 @@ jobs:
             --no-color \
             --change added changed \
             --ignore-errors \
-            refs/heads/main ${{ github.ref }})
+            refs/remotes/origin/main ${{ github.ref }})
           
           # Save the multiline result to the output
           echo 'result<<EOF' >> $GITHUB_OUTPUT
