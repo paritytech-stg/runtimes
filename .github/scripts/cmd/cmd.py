@@ -135,8 +135,8 @@ if args.command == 'bench':
         for pallet in runtime_pallets_map[runtime]:
             config = runtimesMatrix[runtime]
             print(f'-- config: {config}')
-            default_path = f"./{config['path']}/src/weights/{pallet.replace('::', '_')}.rs"
-            xcm_path = f"./{config['path']}/src/weights/xcm/{pallet.replace('::', '_')}.rs"
+            default_path = f"./{config['path']}/src/weights"
+            xcm_path = f"./{config['path']}/src/weights/xcm"
             output_path = default_path if not pallet.startswith("pallet_xcm_benchmarks") else xcm_path
             print(f'-- benchmarking {pallet} in {runtime} into {output_path}')
 

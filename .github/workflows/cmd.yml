@@ -166,6 +166,7 @@ jobs:
         if:  ${{ !contains(github.event.comment.body, '--quiet') }}
         id: build-link
         run: |
+          # Get exactly the CMD job link, filtering out the other jobs
           jobLink=$(curl -s \
             -H "Authorization: token ${{ steps.commands_token.outputs.token }}" \
             -H "Accept: application/vnd.github.v3+json" \
