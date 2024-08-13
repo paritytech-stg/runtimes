@@ -57,6 +57,8 @@ Releases are automatically pushed on commits merged to master that fulfill the f
 - The [`CHANGELOG.md`](CHANGELOG.md) file was modified.
 - The latest version (the version at the top of the file) in [`CHANGELOG.md`](CHANGELOG.md) has no tag in the repository.
 
+THIS IS A TEST!
+
 The release process is building all runtimes and then puts them into a release in this github repository.
 
 The format of [`CHANGELOG.md`](CHANGELOG.md) is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
