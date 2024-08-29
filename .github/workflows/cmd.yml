@@ -232,7 +232,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.issue.pull_request.head.ref }}
+          ref: ${{ github.ref_name }}
 
       - name: Set rust version via common env file
         run: cat .github/env >> $GITHUB_ENV
@@ -263,6 +263,7 @@ jobs:
         env:
           CMD: ${{ steps.get-pr-comment.outputs.group2 }} # to avoid "" around the command
         run: |
+          echo "${{ toJSON(github) }}"
           echo "Running command: $CMD"
           git remote -v
           python3 .github/scripts/cmd/cmd.py $CMD
@@ -275,11 +276,11 @@ jobs:
             git config --local user.email "action@github.com"
             git config --local user.name "GitHub Action"
             
-            git pull origin ${{ github.event.issue.pull_request.head.ref }}
+            git pull origin ${{ github.ref_name }}
             git add .
             git restore --staged Cargo.lock # ignore changes in Cargo.lock
             git commit -m "Update from ${{ github.actor }} running command '${{ steps.get-pr-comment.outputs.group2 }}'" || true
-            git push origin ${{ github.event.issue.pull_request.head.ref }}
+            git push origin ${{ github.ref_name }}
             
           else
             echo "Nothing to commit";
